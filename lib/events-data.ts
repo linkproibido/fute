@@ -6,7 +6,7 @@ export const events: Event[] = [
     name: "Campeonato Brasileiro Série A",
     slug: "campeonato-brasileiro-serie-a",
     coverImage: "/images/brasileirao.jpg",
-    playerUrl: "https://event-player-journey.lovable.app/event/1",
+    playerUrl: "https://reidoscanais.tv/embed/?id=globosp-globosaopaulo",
     providerName: "Globo",
   },
   {
