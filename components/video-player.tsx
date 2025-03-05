@@ -1,39 +1,68 @@
-"use client"
+"use client";
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect, useCallback } from "react";
 
 interface VideoPlayerProps {
-  playerUrl: string
-  title: string
+  playerUrl: string;
+  title: string;
 }
 
 export function VideoPlayer({ playerUrl, title }: VideoPlayerProps) {
-  const [clickCount, setClickCount] = useState(0)
-  const [showRealPlayer, setShowRealPlayer] = useState(false)
-  const iframeRef = useRef<HTMLIFrameElement>(null)
+  const [clickCount, setClickCount] = useState(0);
+  const [showRealPlayer, setShowRealPlayer] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const handleAdClick = useCallback(() => {
+    const adBase = "https://tsyndicate.com/api/v1/direct/";
+    const adKey = "3ae0f7bda163418bb5071e232972abc6";
     const adUrls = [
-      `https://tsyndicate.com/api/v1/direct/3ae0f7bda163418bb5071e232972abc6?extid=1&playerUrl=${encodeURIComponent(playerUrl)}`,
-      `https://tsyndicate.com/api/v1/direct/3ae0f7bda163418bb5071e232972abc6?extid=2&playerUrl=${encodeURIComponent(playerUrl)}`,
-    ]
+      `${adBase}${adKey}?extid=1&playerUrl=${encodeURIComponent(playerUrl)}`,
+      `${adBase}${adKey}?extid=2&playerUrl=${encodeURIComponent(playerUrl)}`,
+    ];
 
     if (clickCount < 2) {
-      window.open(adUrls[clickCount], "_blank")
-      setClickCount((prevCount) => prevCount + 1)
-      if (clickCount === 1) {
-        setShowRealPlayer(true)
-      }
+      // Atraso leve para simular clique humano e evitar detecção imediata
+      setTimeout(() => {
+        window.open(adUrls[clickCount], "_blank");
+        setClickCount((prevCount) => prevCount + 1);
+        if (clickCount === 1) {
+          setShowRealPlayer(true);
+        }
+      }, 300); // 300ms para parecer natural
     }
-  }, [clickCount, playerUrl])
+  }, [clickCount, playerUrl]);
 
   useEffect(() => {
     if (showRealPlayer && iframeRef.current) {
-      const iframe = iframeRef.current
+      const iframe = iframeRef.current;
+
+      // Spoofing para enganar detecção de sandbox
       iframe.onload = () => {
         try {
-          if (iframe.contentDocument && iframe.contentDocument.head) {
-            const style = document.createElement("style")
+          const doc = iframe.contentDocument;
+          if (doc && doc.head) {
+            // Injetar script para simular ambiente não sandboxed
+            const script = doc.createElement("script");
+            script.textContent = `
+              (function() {
+                // Redefine window.top para parecer que não está em iframe
+                Object.defineProperty(window, 'top', { get: () => window });
+                Object.defineProperty(window, 'parent', { get: () => window });
+                
+                // Simula interação humana básica
+                window.addEventListener('mousemove', () => {});
+                window.addEventListener('keydown', () => {});
+                
+                // Evita detecção por tempo de execução
+                setTimeout(() => {
+                  console.log("Ambiente simulado");
+                }, 1000);
+              })();
+            `;
+            doc.head.appendChild(script);
+
+            // Injetar CSS para bloquear anúncios do provedor
+            const style = doc.createElement("style");
             style.textContent = `
               [class*="ad"]:not(.our-ad), [class*="Ad"]:not(.our-ad), [class*="AD"]:not(.our-ad),
               [id*="ad"]:not(.our-ad), [id*="Ad"]:not(.our-ad), [id*="AD"]:not(.our-ad),
@@ -49,28 +78,27 @@ export function VideoPlayer({ playerUrl, title }: VideoPlayerProps) {
                 position: absolute !important;
                 z-index: -9999 !important;
               }
-            `
-            iframe.contentDocument.head.appendChild(style)
+            `;
+            doc.head.appendChild(style);
           }
         } catch (error) {
-          console.error("Erro ao acessar o conteúdo do iframe:", error)
+          console.error("Erro ao manipular o iframe:", error);
         }
-      }
+      };
     }
 
-    // Add protection against inspection
+    // Proteção contra inspeção (mantida como está)
     const preventInspection = (e: KeyboardEvent) => {
       if (e.key === "F12" || (e.ctrlKey && e.shiftKey && e.key === "I")) {
-        e.preventDefault()
+        e.preventDefault();
       }
-    }
-
-    window.addEventListener("keydown", preventInspection)
+    };
+    window.addEventListener("keydown", preventInspection);
 
     return () => {
-      window.removeEventListener("keydown", preventInspection)
-    }
-  }, [showRealPlayer])
+      window.removeEventListener("keydown", preventInspection);
+    };
+  }, [showRealPlayer, playerUrl]);
 
   return (
     <div className="fixed inset-0 bg-black flex items-center justify-center">
@@ -96,11 +124,10 @@ export function VideoPlayer({ playerUrl, title }: VideoPlayerProps) {
           title={title}
           className="w-full h-full"
           style={{ border: "none" }}
-          sandbox="allow-same-origin allow-scripts allow-forms allow-presentation"
+          sandbox="allow-same-origin allow-scripts allow-forms allow-presentation allow-popups"
           loading="lazy"
         />
       )}
     </div>
-  )
+  );
 }
-
