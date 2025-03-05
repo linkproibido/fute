@@ -21,14 +21,13 @@ export function VideoPlayer({ playerUrl, title }: VideoPlayerProps) {
     ];
 
     if (clickCount < 2) {
-      // Atraso leve para simular clique humano e evitar detecção imediata
       setTimeout(() => {
         window.open(adUrls[clickCount], "_blank");
         setClickCount((prevCount) => prevCount + 1);
         if (clickCount === 1) {
           setShowRealPlayer(true);
         }
-      }, 300); // 300ms para parecer natural
+      }, 300); // Atraso para simular clique humano
     }
   }, [clickCount, playerUrl]);
 
@@ -36,27 +35,33 @@ export function VideoPlayer({ playerUrl, title }: VideoPlayerProps) {
     if (showRealPlayer && iframeRef.current) {
       const iframe = iframeRef.current;
 
-      // Spoofing para enganar detecção de sandbox
       iframe.onload = () => {
         try {
           const doc = iframe.contentDocument;
           if (doc && doc.head) {
-            // Injetar script para simular ambiente não sandboxed
+            // Injetar script para contornar detecção de sandbox
             const script = doc.createElement("script");
             script.textContent = `
               (function() {
-                // Redefine window.top para parecer que não está em iframe
+                // Spoofing de window.top e window.parent
                 Object.defineProperty(window, 'top', { get: () => window });
                 Object.defineProperty(window, 'parent', { get: () => window });
                 
-                // Simula interação humana básica
-                window.addEventListener('mousemove', () => {});
-                window.addEventListener('keydown', () => {});
+                // Simular ambiente real
+                Object.defineProperty(window, 'self', { get: () => window });
+                window.location = window.location; // Evita redirecionamentos falsos
                 
-                // Evita detecção por tempo de execução
+                // Simular interação humana
+                let fakeEvent = new Event('mousemove');
+                window.dispatchEvent(fakeEvent);
+                setInterval(() => {
+                  window.dispatchEvent(new Event('mousemove'));
+                }, 5000); // Movimento a cada 5s
+                
+                // Evitar detecção por tempo
                 setTimeout(() => {
-                  console.log("Ambiente simulado");
-                }, 1000);
+                  console.log("Ambiente simulado para lovable.app");
+                }, 1500);
               })();
             `;
             doc.head.appendChild(script);
@@ -87,7 +92,7 @@ export function VideoPlayer({ playerUrl, title }: VideoPlayerProps) {
       };
     }
 
-    // Proteção contra inspeção (mantida como está)
+    // Proteção contra inspeção
     const preventInspection = (e: KeyboardEvent) => {
       if (e.key === "F12" || (e.ctrlKey && e.shiftKey && e.key === "I")) {
         e.preventDefault();
@@ -131,3 +136,6 @@ export function VideoPlayer({ playerUrl, title }: VideoPlayerProps) {
     </div>
   );
 }
+
+// Exemplo de uso
+// <VideoPlayer playerUrl="https://event-player-journey.lovable.app/event/1" title="Evento 1" />
