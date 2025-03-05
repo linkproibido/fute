@@ -1,111 +1,53 @@
-"use client";
+"use client"import { useState, useRef, useEffect, useCallback } from "react"interface VideoPlayerProps {
+  playerUrl: string
+  title: string
+}export function VideoPlayer({ playerUrl, title }: VideoPlayerProps) {
+  const [clickCount, setClickCount] = useState(0)
+  const [showRealPlayer, setShowRealPlayer] = useState(false)
+  const iframeRef = useRef<HTMLIFrameElement>(null)  const handleAdClick = useCallback(() => {
+    const adUrls = [
+      https://tsyndicate.com/api/v1/direct/3ae0f7bda163418bb5071e232972abc6?extid=1&playerUrl=${encodeURIComponent(playerUrl)},
+      https://tsyndicate.com/api/v1/direct/3ae0f7bda163418bb5071e232972abc6?extid=2&playerUrl=${encodeURIComponent(playerUrl)},
+    ]
 
-import { useState, useRef, useEffect, useCallback } from "react";
-
-interface VideoPlayerProps {
-  playerUrl: string;
-  title: string;
+if (clickCount < 2) {
+  window.open(adUrls[clickCount], "_blank")
+  setClickCount((prevCount) => prevCount + 1)
+  if (clickCount === 1) {
+    setShowRealPlayer(true)
+  }
 }
 
-export function VideoPlayer({ playerUrl, title }: VideoPlayerProps) {
-  const [clickCount, setClickCount] = useState(0);
-  const [showRealPlayer, setShowRealPlayer] = useState(false);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-
-  const handleAdClick = useCallback(() => {
-    const adBase = "https://tsyndicate.com/api/v1/direct/";
-    const adKey = "3ae0f7bda163418bb5071e232972abc6";
-    const adUrls = [
-      `${adBase}${adKey}?extid=1&playerUrl=${encodeURIComponent(playerUrl)}`,
-      `${adBase}${adKey}?extid=2&playerUrl=${encodeURIComponent(playerUrl)}`,
-    ];
-
-    if (clickCount < 2) {
-      setTimeout(() => {
-        window.open(adUrls[clickCount], "_blank");
-        setClickCount((prevCount) => prevCount + 1);
-        if (clickCount === 1) {
-          setShowRealPlayer(true);
-        }
-      }, 300); // Atraso para simular clique humano
-    }
-  }, [clickCount, playerUrl]);
-
-  useEffect(() => {
+  }, [clickCount, playerUrl])  useEffect(() => {
     if (showRealPlayer && iframeRef.current) {
-      const iframe = iframeRef.current;
-
+      const iframe = iframeRef.current
       iframe.onload = () => {
         try {
-          const doc = iframe.contentDocument;
-          if (doc && doc.head) {
-            // Injetar script para contornar detecção de sandbox
-            const script = doc.createElement("script");
-            script.textContent = `
-              (function() {
-                // Spoofing de window.top e window.parent
-                Object.defineProperty(window, 'top', { get: () => window });
-                Object.defineProperty(window, 'parent', { get: () => window });
-                
-                // Simular ambiente real
-                Object.defineProperty(window, 'self', { get: () => window });
-                window.location = window.location; // Evita redirecionamentos falsos
-                
-                // Simular interação humana
-                let fakeEvent = new Event('mousemove');
-                window.dispatchEvent(fakeEvent);
-                setInterval(() => {
-                  window.dispatchEvent(new Event('mousemove'));
-                }, 5000); // Movimento a cada 5s
-                
-                // Evitar detecção por tempo
-                setTimeout(() => {
-                  console.log("Ambiente simulado para lovable.app");
-                }, 1500);
-              })();
-            `;
-            doc.head.appendChild(script);
-
-            // Injetar CSS para bloquear anúncios do provedor
-            const style = doc.createElement("style");
-            style.textContent = `
-              [class*="ad"]:not(.our-ad), [class*="Ad"]:not(.our-ad), [class*="AD"]:not(.our-ad),
-              [id*="ad"]:not(.our-ad), [id*="Ad"]:not(.our-ad), [id*="AD"]:not(.our-ad),
-              [class*="banner"]:not(.our-ad), [class*="Banner"]:not(.our-ad),
-              [class*="popup"]:not(.our-popup), [class*="Popup"]:not(.our-popup),
-              [class*="overlay"]:not(.our-overlay), [class*="Overlay"]:not(.our-overlay),
-              iframe:not(.plyr-iframe):not(.our-iframe) {
-                display: none !important;
-                opacity: 0 !important;
-                pointer-events: none !important;
-                height: 0 !important;
-                width: 0 !important;
-                position: absolute !important;
-                z-index: -9999 !important;
-              }
-            `;
-            doc.head.appendChild(style);
+          if (iframe.contentDocument && iframe.contentDocument.head) {
+            const style = document.createElement("style")
+            style.textContent =               [class*="ad"]:not(.our-ad), [class*="Ad"]:not(.our-ad), [class*="AD"]:not(.our-ad),               [id*="ad"]:not(.our-ad), [id*="Ad"]:not(.our-ad), [id*="AD"]:not(.our-ad),               [class*="banner"]:not(.our-ad), [class*="Banner"]:not(.our-ad),               [class*="popup"]:not(.our-popup), [class*="Popup"]:not(.our-popup),               [class*="overlay"]:not(.our-overlay), [class*="Overlay"]:not(.our-overlay),               iframe:not(.plyr-iframe):not(.our-iframe) {                 display: none !important;                 opacity: 0 !important;                 pointer-events: none !important;                 height: 0 !important;                 width: 0 !important;                 position: absolute !important;                 z-index: -9999 !important;               }            
+            iframe.contentDocument.head.appendChild(style)
           }
         } catch (error) {
-          console.error("Erro ao manipular o iframe:", error);
+          console.error("Erro ao acessar o conteúdo do iframe:", error)
         }
-      };
+      }
     }
 
-    // Proteção contra inspeção
-    const preventInspection = (e: KeyboardEvent) => {
-      if (e.key === "F12" || (e.ctrlKey && e.shiftKey && e.key === "I")) {
-        e.preventDefault();
-      }
-    };
-    window.addEventListener("keydown", preventInspection);
+// Add protection against inspection
+const preventInspection = (e: KeyboardEvent) => {
+  if (e.key === "F12" || (e.ctrlKey && e.shiftKey && e.key === "I")) {
+    e.preventDefault()
+  }
+}
 
-    return () => {
-      window.removeEventListener("keydown", preventInspection);
-    };
-  }, [showRealPlayer, playerUrl]);
+window.addEventListener("keydown", preventInspection)
 
-  return (
+return () => {
+  window.removeEventListener("keydown", preventInspection)
+}
+
+  }, [showRealPlayer])  return (
     <div className="fixed inset-0 bg-black flex items-center justify-center">
       {!showRealPlayer ? (
         <div
@@ -129,13 +71,11 @@ export function VideoPlayer({ playerUrl, title }: VideoPlayerProps) {
           title={title}
           className="w-full h-full"
           style={{ border: "none" }}
-          sandbox="allow-same-origin allow-scripts allow-forms allow-presentation allow-popups"
+          sandbox="allow-same-origin allow-scripts allow-forms allow-presentation"
           loading="lazy"
         />
       )}
     </div>
-  );
+  )
 }
 
-// Exemplo de uso
-// <VideoPlayer playerUrl="https://event-player-journey.lovable.app/event/1" title="Evento 1" />
